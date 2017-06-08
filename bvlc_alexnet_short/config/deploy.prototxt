@@ -171,16 +171,25 @@ layer {
     group: 2
   }
 }
+
+layer {
+  bottom: "conv5"
+  bottom: "pool2"
+  top: "conv5_sum"
+  name: "conv5_sum"
+  type: "Eltwise"
+}
+
 layer {
   name: "relu5"
   type: "ReLU"
-  bottom: "conv5"
-  top: "conv5"
+  bottom: "conv5_sum"
+  top: "conv5_sum"
 }
 layer {
   name: "pool5"
   type: "Pooling"
-  bottom: "conv5"
+  bottom: "conv5_sum"
   top: "pool5"
   pooling_param {
     pool: MAX

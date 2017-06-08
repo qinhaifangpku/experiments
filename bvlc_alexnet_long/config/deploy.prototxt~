@@ -6,6 +6,33 @@ layer {
   input_param { shape: { dim: 1 dim: 3 dim: 200 dim: 200 } }
 }
 layer {
+    name: "data"
+    type: "HDF5Data"
+    top: "data"
+    top: "freq"
+    include{
+        phase: TRAIN
+    }
+    hdf5_data_param{
+        source: "train_h5.txt"
+        batch_size: 32
+    }
+}
+layer {
+    name: "data"
+    type: "HDF5Data"
+    top: "data"
+    top: "freq"
+    include {
+        phase: TEST
+    }
+    hdf5_data_param{
+        source:"val_h5.txt"
+        batch_size: 32
+    }
+}
+
+layer {
   name: "conv1"
   type: "Convolution"
   bottom: "data"
@@ -22,6 +49,14 @@ layer {
     num_output: 96
     kernel_size: 11
     stride: 4
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
   }
 }
 layer {
@@ -70,6 +105,14 @@ layer {
     pad: 2
     kernel_size: 5
     group: 2
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
   }
 }
 layer {
@@ -117,6 +160,14 @@ layer {
     num_output: 384
     pad: 1
     kernel_size: 3
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
   }
 }
 layer {
@@ -143,6 +194,14 @@ layer {
     pad: 1
     kernel_size: 3
     group: 2
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
   }
 }
 layer {
@@ -169,6 +228,14 @@ layer {
     pad: 1
     kernel_size: 3
     group: 2
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
   }
 }
 layer {
@@ -188,21 +255,30 @@ layer {
     stride: 2
   }
 }
+
 layer {
   name: "fc6_1"
   type: "InnerProduct"
-  bottom: "pool5"
+  bottom: "pool1"
   top: "fc6_1"
   param {
-    lr_mult: 1
+    lr_mult: 10
     decay_mult: 1
   }
   param {
-    lr_mult: 2
+    lr_mult: 20
     decay_mult: 0
   }
   inner_product_param {
-    num_output: 4096
+    num_output: 2048
+    weight_filler {
+      type: "gaussian"
+      std: 0.005
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
   }
 }
 layer {
@@ -220,21 +296,125 @@ layer {
     dropout_ratio: 0.5
   }
 }
+
+
 layer {
-  name: "fc7_1"
+  name: "fc6_2"
   type: "InnerProduct"
-  bottom: "fc6_1"
-  top: "fc7_1"
+  bottom: "pool2"
+  top: "fc6_2"
   param {
-    lr_mult: 1
+    lr_mult: 10
     decay_mult: 1
   }
   param {
-    lr_mult: 2
+    lr_mult: 20
     decay_mult: 0
   }
   inner_product_param {
     num_output: 2048
+    weight_filler {
+      type: "gaussian"
+      std: 0.005
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
+  }
+}
+layer {
+  name: "relu6"
+  type: "ReLU"
+  bottom: "fc6_2"
+  top: "fc6_2"
+}
+layer {
+  name: "drop6"
+  type: "Dropout"
+  bottom: "fc6_2"
+  top: "fc6_2"
+  dropout_param {
+    dropout_ratio: 0.5
+  }
+}
+
+layer {
+  name: "fc6_3"
+  type: "InnerProduct"
+  bottom: "pool5"
+  top: "fc6_3"
+  param {
+    lr_mult: 10
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 20
+    decay_mult: 0
+  }
+  inner_product_param {
+    num_output: 2048
+    weight_filler {
+      type: "gaussian"
+      std: 0.005
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
+  }
+}
+layer {
+  name: "relu6"
+  type: "ReLU"
+  bottom: "fc6_3"
+  top: "fc6_3"
+}
+layer {
+  name: "drop6"
+  type: "Dropout"
+  bottom: "fc6_3"
+  top: "fc6_3"
+  dropout_param {
+    dropout_ratio: 0.5
+  }
+}
+
+layer {
+	name: "concat_fc"
+	bottom: "fc6_1"
+	bottom: "fc6_2"
+	bottom: "fc6_3"
+	top: "concat_fc"
+	type: "Concat"
+	concat_param{
+		concat_dim: 1
+	}
+}
+
+layer {
+  name: "fc7_1"
+  type: "InnerProduct"
+  bottom: "concat_fc"
+  top: "fc7_1"
+  param {
+    lr_mult: 10
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 20
+    decay_mult: 0
+  }
+  inner_product_param {
+    num_output: 2048 
+    weight_filler {
+      type: "gaussian"
+      std: 0.005
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
   }
 }
 layer {
@@ -258,15 +438,23 @@ layer {
   bottom: "fc7_1"
   top: "pred"
   param {
-    lr_mult: 1
+    lr_mult: 10
     decay_mult: 1
   }
   param {
-    lr_mult: 2
+    lr_mult: 20
     decay_mult: 0
   }
   inner_product_param {
     num_output: 5
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
   }
 }
 
